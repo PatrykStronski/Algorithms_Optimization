@@ -3,7 +3,7 @@ from formulas import linear_approximation, rational_approximation
 
 PRECISION = 0.001
 START = (0.0, 0.0)
-END = (0.3, 0.3)
+END = (1.0, 1.0)
 
 print('Linear approximant')
 answ = exhaustive_search(linear_approximation, START, END, PRECISION)
