@@ -115,5 +115,114 @@ def gauss_search(approx: Callable, start: (float, float), end: (float, float), p
         
     return (min_val, min, func_calc, iter_calc)
 
-def neldar_mead(approx_: Callable, input: float, y: float, start: (float, float), end: (float, float), precision: float) -> ((float, float), int):
-    pass
+def sort_points(p1: (float, (float, float)), p2:(float, (float, float)), p3:(float, (float, float))) -> ((float, (float, float)), (float, (float, float)), (float, (float, float)), int):
+    p_h = ()
+    p_g = ()
+    p_l = ()
+    l = 0
+    if p1[0] > p2[0]:
+        if p1[0] > p3[0]:
+            p_h = p1
+            if p2[0] > p3[0]:
+                p_g = p2
+                p_l = p3
+                l = 3
+            else:
+                p_g = p3
+                p_l = p2
+                l= 2
+        else:
+            p_h = p3
+            p_g = p1
+            p_l = p_2
+            l = 2
+    else:
+        if p2[0] > p3[0]:
+            p_h = p2
+            if p1[0] > p3[0]:
+                p_g = p1
+                p_l = p3
+                l = 3
+            else:
+                p_l = p1
+                p_g = p3
+                l = 1
+        else:
+            p_h = p3
+            p_g = p2
+            p_l = p1
+            l = 1
+    return (p_h, p_g, p_l, l)
+        
+
+def nelder_mead(approx: Callable, start: (float, float), end: (float, float), precision: float) -> (float, (float, float), int, int):
+    alpha = 1.0
+    beta = 0.5
+    gamma = 2
+
+    x1 = start
+    x2 = end
+    x3 = (end[0]/2, end[1]/2)
+
+    f1 = least_squares(approx, x1[0], x1[1])
+    f2 = least_squares(approx, x2[0], x2[1])
+    f3 = least_squares(approx, x3[0], x3[1])
+    
+    func_calc = 3
+    iter_calc = 0
+
+    while abs(x1[0] - x2[0]) > precision and abs(x1[1] - x2[1]) > precision and abs(x2[0] - x3[0]) > precision and abs(x2[1] - x3[1]) > precision and abs(x1[0] - x3[0]) > precision and abs(x1[1] - x3[1]) > precision:
+        iter_calc += 1
+
+        p_h, p_g, p_l, l = sort_points((f1, x1), (f2, x2), (f3, x3))
+
+        xc = ((p_g[1][0] + p_l[1][0])/2, (p_g[1][1] + p_l[1][1])/2)
+
+        xr = (((1 + alpha) * xc[0] - alpha * p_h[1][0]), ((1 + alpha) * xc[1] - alpha * p_h[1][1]))
+        fr = least_squares(approx, xr[0], xr[1])
+
+        func_calc += 1
+
+        if fr > p_l[0]:
+            xe = ((1 - gamma) * xc[0] + gamma * xr[0], (1 - gamma) * xc[1] + gamma * xr[1])
+            fe = least_squares(approx, xe[0], xe[1])
+            func_calc += 1
+
+            if fe < fr:
+                p_h = (fe, xe)
+            elif fr < fe:
+                p_h = (fr, xr)
+            elif p_l[0] < fr < p_g[0]:
+                p_h = (fr, xr)
+            elif p_g[0] < fr < p_h[0] or p_h[0] < fr:
+                if p_g[0] < fr < p_h[0]:
+                    tmp = (fr, xr)
+                    fr, xr = p_h
+                    p_h = tmp
+
+                xs = (beta * p_h[1][0] + (1 - beta) * xc[0], beta * p_h[1][1] + (1 - beta) * xc[1])
+                fs = least_squares(approx, xs[0], xs[1])
+
+                if fs < p_h[0]: 
+                    p_h = (fs, xs)
+
+                if fs > p_h[0]: 
+                    xl = p_l[1]
+                    if l == 3:
+                        x1 = (xl[0] + (x1 - xl[0])/2, xl[1] + (x1 - xl[1])/2)
+                        x2 = (xl[0] + (x2 - xl[0])/2, xl[1] + (x2 - xl[1])/2)
+                        f1 = least_squares(approx, x1[0], x1[1])
+                        f2 = least_squares(approx, x2[0], x2[1])
+                    elif l == 2:
+                        x1 = (xl[0] + (x1 - xl[0])/2, xl[1] + (x1 - xl[1])/2)
+                        x3 = (xl[0] + (x3 - xl[0])/2, xl[1] + (x3 - xl[1])/2)
+                        f1 = least_squares(approx, x1[0], x1[1])
+                        f3 = least_squares(approx, x3[0], x3[1])
+                    elif l == 1:
+                        x2 = (xl[0] + (x2 - xl[0])/2, xl[1] + (x2 - xl[1])/2)
+                        x3 = (xl[0] + (x3 - xl[0])/2, xl[1] + (x3 - xl[1])/2)
+                        f2 = least_squares(approx, x2[0], x2[1])
+                        f3 = least_squares(approx, x3[0], x3[1])
+                    func_calc += 2
+
+    return (fr, xr, func_calc, iter_calc)
