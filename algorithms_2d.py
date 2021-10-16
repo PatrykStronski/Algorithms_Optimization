@@ -153,7 +153,9 @@ def sort_points(p1: (float, (float, float)), p2:(float, (float, float)), p3:(flo
             p_l = p1
             l = 1
     return (p_h, p_g, p_l, l)
-        
+
+def points_in_precision(x1: (float, float), x2: (float, float), x3: (float, float), precision: float) -> bool:
+    return abs(x1[0] - x2[0]) > precision and abs(x1[1] - x2[1]) > precision and abs(x2[0] - x3[0]) > precision and abs(x2[1] - x3[1]) > precision and abs(x1[0] - x3[0]) > precision and abs(x1[1] - x3[1]) > precision
 
 def nelder_mead(approx: Callable, start: (float, float), end: (float, float), precision: float) -> (float, (float, float), int, int):
     alpha = 1.0
@@ -171,43 +173,51 @@ def nelder_mead(approx: Callable, start: (float, float), end: (float, float), pr
     func_calc = 3
     iter_calc = 0
 
-    while abs(x1[0] - x2[0]) > precision and abs(x1[1] - x2[1]) > precision and abs(x2[0] - x3[0]) > precision and abs(x2[1] - x3[1]) > precision and abs(x1[0] - x3[0]) > precision and abs(x1[1] - x3[1]) > precision:
+    while points_in_precision(x1, x2, x3, precision):
+        print(x1)
+        print(x2)
+        print(x3)
+        print('a')
         iter_calc += 1
 
-        p_h, p_g, p_l, l = sort_points((f1, x1), (f2, x2), (f3, x3))
+        (fh, xh), (fg, xg), (fl, xl), l = sort_points((f1, x1), (f2, x2), (f3, x3))
 
-        xc = ((p_g[1][0] + p_l[1][0])/2, (p_g[1][1] + p_l[1][1])/2)
+        xc = ((xg[0] + xl[0])/2, (xg[1] + xl[1])/2)
 
-        xr = (((1 + alpha) * xc[0] - alpha * p_h[1][0]), ((1 + alpha) * xc[1] - alpha * p_h[1][1]))
+        xr = (((1 + alpha) * xc[0] - alpha * xh[0]), ((1 + alpha) * xc[1] - alpha * xh[1]))
         fr = least_squares(approx, xr[0], xr[1])
 
         func_calc += 1
 
-        if fr > p_l[0]:
+        if fr > fl:
             xe = ((1 - gamma) * xc[0] + gamma * xr[0], (1 - gamma) * xc[1] + gamma * xr[1])
             fe = least_squares(approx, xe[0], xe[1])
             func_calc += 1
 
             if fe < fr:
-                p_h = (fe, xe)
-            elif fr < fe:
-                p_h = (fr, xr)
-            elif p_l[0] < fr < p_g[0]:
-                p_h = (fr, xr)
-            elif p_g[0] < fr < p_h[0] or p_h[0] < fr:
-                if p_g[0] < fr < p_h[0]:
+                fh, xh = (fe, xe)
+            if fr < fe:
+                fh = fr
+                xh = xr
+            if fl < fr < fg:
+                fg = fr
+                xg = xr
+            if fg < fr < fh or fh < fr:
+                if fg < fr < fh:
                     tmp = (fr, xr)
-                    fr, xr = p_h
-                    p_h = tmp
+                    fr = fh
+                    xr = xh
+                    xh = tmp[1]
+                    fh = tmp[0]
 
-                xs = (beta * p_h[1][0] + (1 - beta) * xc[0], beta * p_h[1][1] + (1 - beta) * xc[1])
+                xs = (beta * xh[0] + (1 - beta) * xc[0], beta * xh[1] + (1 - beta) * xc[1])
                 fs = least_squares(approx, xs[0], xs[1])
 
-                if fs < p_h[0]: 
-                    p_h = (fs, xs)
+                if fs < fh: 
+                    fh, xh = (fs, xs)
 
-                if fs > p_h[0]: 
-                    xl = p_l[1]
+                if fs > fh: 
+                    xl = fl
                     if l == 3:
                         x1 = (xl[0] + (x1 - xl[0])/2, xl[1] + (x1 - xl[1])/2)
                         x2 = (xl[0] + (x2 - xl[0])/2, xl[1] + (x2 - xl[1])/2)
