@@ -36,7 +36,7 @@ def dichotomy(func: Callable, start: float, end: float, precision: float) -> (fl
             start = x1
         function_calcs += 2
     if y1 < y2:
-        return (x1, function_calcs)
+        return (x1, function_calcs, iters_calc)
     return (x2, function_calcs, iters_calc)
 
 

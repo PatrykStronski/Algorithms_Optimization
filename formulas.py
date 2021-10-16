@@ -35,11 +35,18 @@ def linear_approximation(x: float, a: float, b: float) -> float:
 def rational_approximation(x: float, a: float, b: float) -> float:
     return a / (1 + b * x)
 
+NOISY_DATA = [] 
+X_ES = []
+
+for k in range(0,100):
+    NOISY_DATA.append(gen_noisy_data(alpha, beta, k))
+    X_ES.append(k/100)
+
 """Least squares method that for function func calculates lest square sum"""
 def least_squares(func: Callable, a: float, b: float) -> float:
     sum = 0
     for k in range(0,100):
-        y = gen_noisy_data(alpha, beta, k)
-        x = k/100
+        y = NOISY_DATA[k]
+        x = X_ES[k]
         sum += (func(x, a, b) - y) **2
     return sum

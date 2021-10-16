@@ -1,5 +1,6 @@
 from typing import Callable
 from formulas import least_squares
+from random import random
 import math
 
 GOLDEN_RATIO = (3 - math.sqrt(5)) * 0.5
@@ -134,7 +135,7 @@ def sort_points(p1: (float, (float, float)), p2:(float, (float, float)), p3:(flo
         else:
             p_h = p3
             p_g = p1
-            p_l = p_2
+            p_l = p2
             l = 2
     else:
         if p2[0] > p3[0]:
@@ -157,6 +158,12 @@ def sort_points(p1: (float, (float, float)), p2:(float, (float, float)), p3:(flo
 def points_in_precision(x1: (float, float), x2: (float, float), x3: (float, float), precision: float) -> bool:
     return abs(x1[0] - x2[0]) > precision and abs(x1[1] - x2[1]) > precision and abs(x2[0] - x3[0]) > precision and abs(x2[1] - x3[1]) > precision and abs(x1[0] - x3[0]) > precision and abs(x1[1] - x3[1]) > precision
 
+def reflect_point(xh: (float, float), xc: (float, float), alpha: float) -> (float, float):
+    return (1 + alpha) * xc[0] - alpha * xh[0], (1 + alpha) * xc[1] - alpha * xh[1]
+
+def calc_e(xc: (float, float), xr: (float, float), gamma: float) -> (float, float):
+    return (1 - gamma) * xc[0] + gamma * xr[0], (1 - gamma) * xc[1] + gamma * xr[1]
+
 def nelder_mead(approx: Callable, start: (float, float), end: (float, float), precision: float) -> (float, (float, float), int, int):
     alpha = 1.0
     beta = 0.5
@@ -174,65 +181,57 @@ def nelder_mead(approx: Callable, start: (float, float), end: (float, float), pr
     iter_calc = 0
 
     while points_in_precision(x1, x2, x3, precision):
-        print(x1)
-        print(x2)
-        print(x3)
-        print('a')
         iter_calc += 1
 
-        (fh, xh), (fg, xg), (fl, xl), l = sort_points((f1, x1), (f2, x2), (f3, x3))
+        x1_pre, x2_pre, x3_pre = x1, x2, x3
+        (f1, x1), (f2, x2), (f3, x3), l = sort_points((f1, x1), (f2, x2), (f3, x3))
+        
+        xc = ((x2[0] + x3[0])/2, (x2[1] + x3[1])/2)
 
-        xc = ((xg[0] + xl[0])/2, (xg[1] + xl[1])/2)
-
-        xr = (((1 + alpha) * xc[0] - alpha * xh[0]), ((1 + alpha) * xc[1] - alpha * xh[1]))
+        xr = reflect_point(x1, xc, alpha)
         fr = least_squares(approx, xr[0], xr[1])
 
         func_calc += 1
 
-        if fr > fl:
-            xe = ((1 - gamma) * xc[0] + gamma * xr[0], (1 - gamma) * xc[1] + gamma * xr[1])
+        if fr < f3:
+            xe = calc_e(xc, xr, gamma)
             fe = least_squares(approx, xe[0], xe[1])
             func_calc += 1
 
             if fe < fr:
-                fh, xh = (fe, xe)
-            if fr < fe:
-                fh = fr
-                xh = xr
-            if fl < fr < fg:
-                fg = fr
-                xg = xr
-            if fg < fr < fh or fh < fr:
-                if fg < fr < fh:
-                    tmp = (fr, xr)
-                    fr = fh
-                    xr = xh
-                    xh = tmp[1]
-                    fh = tmp[0]
+                f1, x1 = (fe, xe)
+            elif fr < fe:
+                f1, x1 = fr, xr
+        elif f3 < fr < f2:
+            f1, x1 = fr, xr
+        elif f2 < fr < f1 or f1 < fr:
+            if f2 < fr < f1:
+                tmp = (fr, xr)
+                fr, xr = f1, x1
+                f1, x1 = tmp
 
-                xs = (beta * xh[0] + (1 - beta) * xc[0], beta * xh[1] + (1 - beta) * xc[1])
-                fs = least_squares(approx, xs[0], xs[1])
+            xs = (beta * x1[0] + (1 - beta) * xc[0], beta * x1[1] + (1 - beta) * xc[1])
+            fs = least_squares(approx, xs[0], xs[1])
 
-                if fs < fh: 
-                    fh, xh = (fs, xs)
+            if fs < f1: 
+                f1, x1 = (fs, xs)
+            else: 
+                if l == 3:
+                    x1 = (x3[0] + (x1_pre[0] - x3[0])/2, x3[1] + (x1_pre[1] - x3[1])/2)
+                    x2 = (x3[0] + (x2_pre[0] - x3[0])/2, x3[1] + (x2_pre[1] - x3[1])/2)
+                    f1 = least_squares(approx, x1[0], x1[1])
+                    f2 = least_squares(approx, x2[0], x2[1])
+                elif l == 2:
+                    x1 = (x3[0] + (x1_pre[0] - x3[0])/2, x3[1] + (x1_pre[1] - x3[1])/2)
+                    x3 = (x3[0] + (x3_pre[0] - x3[0])/2, x3[1] + (x3_pre[1] - x3[1])/2)
+                    f1 = least_squares(approx, x1[0], x1[1])
+                    f3 = least_squares(approx, x3[0], x3[1])
+                elif l == 1:
+                    x2 = (x3[0] + (x2_pre[0] - x3[0])/2, x3[1] + (x2_pre[1] - x3[1])/2)
+                    x3 = (x3[0] + (x3_pre[0] - x3[0])/2, x3[1] + (x3_pre[1] - x3[1])/2)
+                    f2 = least_squares(approx, x2[0], x2[1])
+                    f3 = least_squares(approx, x3[0], x3[1])
+                func_calc += 2
 
-                if fs > fh: 
-                    xl = fl
-                    if l == 3:
-                        x1 = (xl[0] + (x1 - xl[0])/2, xl[1] + (x1 - xl[1])/2)
-                        x2 = (xl[0] + (x2 - xl[0])/2, xl[1] + (x2 - xl[1])/2)
-                        f1 = least_squares(approx, x1[0], x1[1])
-                        f2 = least_squares(approx, x2[0], x2[1])
-                    elif l == 2:
-                        x1 = (xl[0] + (x1 - xl[0])/2, xl[1] + (x1 - xl[1])/2)
-                        x3 = (xl[0] + (x3 - xl[0])/2, xl[1] + (x3 - xl[1])/2)
-                        f1 = least_squares(approx, x1[0], x1[1])
-                        f3 = least_squares(approx, x3[0], x3[1])
-                    elif l == 1:
-                        x2 = (xl[0] + (x2 - xl[0])/2, xl[1] + (x2 - xl[1])/2)
-                        x3 = (xl[0] + (x3 - xl[0])/2, xl[1] + (x3 - xl[1])/2)
-                        f2 = least_squares(approx, x2[0], x2[1])
-                        f3 = least_squares(approx, x3[0], x3[1])
-                    func_calc += 2
-
-    return (fr, xr, func_calc, iter_calc)
+    (f1, x1), (f2, x2), (f3, x3), l = sort_points((f1, x1), (f2, x2), (f3, x3))
+    return (f3, x3, func_calc, iter_calc)
