@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from algorithms_2d import exhaustive_search, gauss_search, nelder_mead
 from formulas import linear_approximation, rational_approximation, NOISY_DATA, X_ES
 
-PRECISION = 0.001
+PRECISION = 0.01
 START = (0.0, 0.0)
 END = (1.0, 1.0)
 
@@ -26,9 +26,9 @@ print(f"Nelder-Mead Search: result={answ[0]} a={answ[1][0]}; b={answ[1][1]};func
 
 plt.plot(X_ES, [linear_approximation(x, answ[1][0], answ[1][1]) for x in X_ES], label='Nelder-Mead method')
 
-plt.xlabel('K-value')
+plt.xlabel('X-value')
 plt.ylabel('Y-value')
 plt.legend()
 plt.grid(True)
-plt.title('Data and its linear approximation')
+plt.title(f"Data and its linear approximation with precision {PRECISION}")
 plt.show()

@@ -1,7 +1,7 @@
 from formulas import x_pow3, x_sin_rational, x_abs
 from algorithms import exhaustive_search, dichotomy, golden_selection
 
-PRECISION = 0.001
+PRECISION = 0.0001
 
 print('x3 - results')
 dt = exhaustive_search(x_pow3, 0.0, 1.0, PRECISION)
